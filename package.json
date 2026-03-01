@@ -8,7 +8,11 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
-  "keywords": ["images", "review", "gallery"],
+  "keywords": [
+    "images",
+    "review",
+    "gallery"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -16,11 +20,14 @@
     "electron-builder": "^24.9.1"
   },
   "dependencies": {
-    "exifreader": "^4.36.0"
+    "exifreader": "^4.36.0",
+    "exiftool-vendored": "^35.12.0"
   },
   "build": {
     "appId": "com.processimages.app",
     "productName": "Process Images",
-    "directories": { "output": "dist" }
+    "directories": {
+      "output": "dist"
+    }
   }
 }

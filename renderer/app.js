@@ -12,7 +12,7 @@ import {
   FilterPossibleGoodPlus,
   FilterPossibleBest,
 } from './lib/filters.js';
-import { get_fn_for_row, get_row_for_fn } from './lib/util.js';
+import { get_fn_for_row, get_row_for_fn, isVideoRow } from './lib/util.js';
 
 const api = window.electronAPI;
 if (!api) throw new Error('electronAPI not available');
@@ -23,18 +23,21 @@ let treeData = { roots: [], rowsByKey: new Map(), folderKeys: new Set() };
 let selectedTreeKeys = [];
 const expandedTreeKeys = new Set();
 const listeners = new EventListener();
-const COLS = 3;
-const ROWS = 3;
+let itemsPerPage = 9;
 let galleryPage = 0;
 let galleryRows = [];
 let selectedRows = [];
 let lastImageFn = null;
+let flatTreeList = [];
+let lastSelectedTreeIndex = null;
 
 const statusEl = document.getElementById('status-text');
 const treeContainer = document.getElementById('tree-container');
 const galleryPagesEl = document.getElementById('gallery-pages');
 const galleryPageNbrEl = document.getElementById('gallery-page-nbr');
 const mainImageEl = document.getElementById('main-image');
+const mainVideoEl = document.getElementById('main-video');
+const imageContainerEl = document.getElementById('image-container');
 
 function updateStatus(msg) {
   statusEl.textContent = msg || '';
@@ -68,6 +71,7 @@ function rebuildTree() {
 
 function renderTree() {
   treeContainer.innerHTML = '';
+  flatTreeList = [];
   if (!treeData.roots || !treeData.roots.length) {
     treeContainer.textContent = 'No collection loaded. Use File → Open or New.';
     return;
@@ -79,10 +83,20 @@ function renderTree() {
     const isFolder = node.isFolder === true;
     const isExpanded = isFolder && expandedTreeKeys.has(node.key);
     const isSelected = selectedTreeKeys.includes(node.key);
+    const isVideo = !isFolder && node.row && isVideoRow(node.row);
 
     const label = document.createElement('div');
     label.className = 'tree-label' + (isSelected ? ' selected' : '');
+    if (isFolder) label.classList.add('tree-folder');
+    if (isFolder && isExpanded) label.classList.add('expanded');
+    if (!isFolder) {
+      label.classList.add('tree-file');
+      if (isVideo) label.classList.add('video-file');
+    }
     label.dataset.key = node.key;
+    const idx = flatTreeList.length;
+    flatTreeList.push({ key: node.key, label });
+    label.dataset.index = String(idx);
     label.style.paddingLeft = `${depth * 12 + 4}px`;
 
     const expandCell = document.createElement('span');
@@ -116,13 +130,36 @@ function renderTree() {
     label.addEventListener('click', (e) => {
       if (e.target.classList.contains('tree-expand')) return;
       e.stopPropagation();
-      if (e.ctrlKey || e.metaKey) {
+      const index = parseInt(label.dataset.index, 10);
+      const hasToggle = e.ctrlKey || e.metaKey;
+      const isShift = e.shiftKey;
+
+      if (isShift && lastSelectedTreeIndex !== null) {
+        const start = Math.min(lastSelectedTreeIndex, index);
+        const end = Math.max(lastSelectedTreeIndex, index);
+        if (!hasToggle) selectedTreeKeys = [];
+        for (let i = start; i <= end; i++) {
+          const item = flatTreeList[i];
+          if (!item) continue;
+          if (hasToggle && selectedTreeKeys.includes(item.key)) {
+            selectedTreeKeys = selectedTreeKeys.filter(k => k !== item.key);
+          } else if (!selectedTreeKeys.includes(item.key)) {
+            selectedTreeKeys.push(item.key);
+          }
+        }
+        lastSelectedTreeIndex = index;
+        rebuildTree();
+        return;
+      }
+
+      if (!hasToggle) {
+        selectedTreeKeys = [node.key];
+      } else {
         const i = selectedTreeKeys.indexOf(node.key);
         if (i >= 0) selectedTreeKeys.splice(i, 1);
         else selectedTreeKeys.push(node.key);
-      } else {
-        selectedTreeKeys = [node.key];
       }
+      lastSelectedTreeIndex = index;
       rebuildTree();
     });
     div.appendChild(label);
@@ -144,11 +181,19 @@ function escapeHtml(s) {
   return div.innerHTML;
 }
 
+function getGridSize(n) {
+  const s = Math.ceil(Math.sqrt(n)) || 1;
+  return { cols: s, rows: Math.ceil(n / s) || 1 };
+}
+
 function renderGallery() {
   galleryPagesEl.innerHTML = '';
   const filter = new SelectedTreeNodesFilter(selectedTreeKeys, treeData.folderKeys);
   galleryRows = table ? filter.filter(table.rows()) : [];
-  const perPage = COLS * ROWS;
+  const perPage = Math.max(1, itemsPerPage);
+  const { cols, rows } = getGridSize(perPage);
+  galleryPagesEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  galleryPagesEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
   const totalPages = Math.max(1, Math.ceil(galleryRows.length / perPage));
   galleryPage = Math.min(galleryPage, totalPages - 1);
   if (galleryPage < 0) galleryPage = 0;
@@ -162,11 +207,24 @@ function renderGallery() {
     if (row) {
       const fn = get_fn_for_row(row);
       const src = directory ? `collection:///${fn.replace(/^\//, '')}` : '';
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = row.get('file_name');
-      img.title = row.get('_imgcol_tooltip') || '';
-      cell.appendChild(img);
+      const video = isVideoRow(row);
+      if (video) {
+        const videoEl = document.createElement('video');
+        videoEl.src = src + '#t=0.1';
+        videoEl.preload = 'metadata';
+        videoEl.muted = true;
+        cell.appendChild(videoEl);
+        const playIcon = document.createElement('div');
+        playIcon.className = 'play-icon';
+        playIcon.innerHTML = '▶';
+        cell.appendChild(playIcon);
+      } else {
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = row.get('file_name');
+        img.title = row.get('_imgcol_tooltip') || '';
+        cell.appendChild(img);
+      }
       const isSelected = selectedRows.some(r => r.get('file_id') === row.get('file_id'));
       if (isSelected) cell.classList.add('selected');
       cell.addEventListener('click', () => {
@@ -178,6 +236,9 @@ function renderGallery() {
           const fn = get_fn_for_row(selectedRows[selectedRows.length - 1]);
           listeners.notify(config.EVT_IMG_SELECT, { [config.EVT_IMG_SELECT]: [fn] });
         }
+      });
+      cell.addEventListener('dblclick', () => {
+        api.openViewer(src, video);
       });
       cell.addEventListener('contextmenu', (e) => {
         e.preventDefault();
@@ -225,15 +286,33 @@ function renderImageTab(fn) {
   if (!fn) {
     mainImageEl.src = '';
     mainImageEl.alt = '';
+    mainVideoEl.src = '';
+    imageContainerEl.classList.remove('has-video');
+    mainImageEl.style.display = '';
+    mainVideoEl.style.display = 'none';
     return;
   }
   lastImageFn = fn;
   const src = directory ? `collection:///${fn.replace(/^\//, '')}` : '';
-  mainImageEl.src = src;
   const row = table ? get_row_for_fn(table, fn) : null;
+  const video = row && isVideoRow(row);
+  imageContainerEl.classList.toggle('has-video', video);
+  if (video) {
+    mainImageEl.style.display = 'none';
+    mainVideoEl.style.display = 'block';
+    mainVideoEl.src = src;
+    mainVideoEl.alt = row ? row.get('file_name') : '';
+  } else {
+    mainImageEl.style.display = 'block';
+    mainVideoEl.style.display = 'none';
+    mainVideoEl.src = '';
+    mainImageEl.src = src;
+    mainImageEl.alt = row ? row.get('file_name') : '';
+  }
   if (row) {
-    mainImageEl.alt = row.get('file_name');
-    mainImageEl.title = row.get('_imgcol_tooltip') || '';
+    const title = row.get('_imgcol_tooltip') || '';
+    mainImageEl.title = title;
+    mainVideoEl.title = title;
     const [status, lvl] = row.get_status_lvl();
     updateStatus(`${fn} - ${status} ${lvl}`);
   }
@@ -248,6 +327,13 @@ listeners.add(config.EVT_IMG_SELECT, (event, values) => {
   const list = values[config.EVT_IMG_SELECT];
   const fn = list && list.length ? list[list.length - 1] : null;
   renderImageTab(fn);
+});
+
+imageContainerEl.addEventListener('dblclick', () => {
+  if (!lastImageFn || !directory) return;
+  const src = `collection:///${lastImageFn.replace(/^\//, '')}`;
+  const row = table ? get_row_for_fn(table, lastImageFn) : null;
+  api.openViewer(src, row && isVideoRow(row));
 });
 
 listeners.add(config.EVT_TABLE_LOAD, () => {
@@ -363,7 +449,8 @@ document.getElementById('gallery-pgup').addEventListener('click', () => {
   if (galleryPage > 0) { galleryPage--; renderGallery(); }
 });
 document.getElementById('gallery-pgdn').addEventListener('click', () => {
-  const totalPages = Math.max(1, Math.ceil(galleryRows.length / (COLS * ROWS)));
+  const perPage = Math.max(1, itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(galleryRows.length / perPage));
   if (galleryPage < totalPages - 1) { galleryPage++; renderGallery(); }
 });
 document.getElementById('gallery-home').addEventListener('click', () => {
@@ -371,9 +458,44 @@ document.getElementById('gallery-home').addEventListener('click', () => {
   renderGallery();
 });
 document.getElementById('gallery-end').addEventListener('click', () => {
-  galleryPage = Math.max(0, Math.ceil(galleryRows.length / (COLS * ROWS)) - 1);
+  const perPage = Math.max(1, itemsPerPage);
+  galleryPage = Math.max(0, Math.ceil(galleryRows.length / perPage) - 1);
   renderGallery();
 });
+
+document.getElementById('page-size').addEventListener('change', (e) => {
+  const val = parseInt(e.target.value, 10);
+  if (!Number.isNaN(val) && val >= 1) {
+    itemsPerPage = val;
+    galleryPage = 0;
+    renderGallery();
+  }
+});
+
+const resizerEl = document.getElementById('resizer');
+const treePaneEl = document.getElementById('tree-pane');
+let isResizing = false;
+if (resizerEl && treePaneEl) {
+  resizerEl.addEventListener('mousedown', () => {
+    isResizing = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    const newWidth = e.clientX;
+    const minW = 150;
+    const maxW = Math.max(minW, window.innerWidth * 0.8);
+    if (newWidth >= minW && newWidth <= maxW) {
+      treePaneEl.style.width = `${newWidth}px`;
+    }
+  });
+  document.addEventListener('mouseup', () => {
+    isResizing = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+}
 
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey && e.key === 's') {

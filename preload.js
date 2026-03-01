@@ -20,4 +20,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pathSep: () => ipcRenderer.invoke('path:sep'),
   setCollectionRoot: (root) => ipcRenderer.invoke('collection:setRoot', root),
   loadExifDirectory: (dirPath) => ipcRenderer.invoke('exif:loadDirectory', dirPath),
+  openViewer: (mediaUrl, isVideo) => ipcRenderer.invoke('viewer:open', mediaUrl, isVideo),
 });

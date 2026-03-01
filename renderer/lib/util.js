@@ -1,6 +1,15 @@
+import { VIDEO_FILE_TYPES } from './config.js';
+
 /**
  * General utilities: get row by filename, get filename from row, set collection.
  */
+export function isVideoRow(row) {
+  if (row.get && row.get('file_media_type') === 'video') return true;
+  const name = (row.get && row.get('file_name')) || row.file_name || '';
+  const ext = name.toLowerCase().slice(name.lastIndexOf('.'));
+  return VIDEO_FILE_TYPES.includes(ext);
+}
+
 export function get_row_for_fn(table, filename) {
   const norm = filename.replace(/\\/g, '/');
   const lastSlash = norm.lastIndexOf('/');

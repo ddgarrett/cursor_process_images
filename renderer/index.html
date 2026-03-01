@@ -43,9 +43,10 @@
       </nav>
     </header>
     <main class="main-content">
-      <aside class="tree-pane">
+      <aside class="tree-pane" id="tree-pane">
         <div id="tree-container" class="tree-container"></div>
       </aside>
+      <div class="resizer" id="resizer"></div>
       <section class="content-pane">
         <div class="tabs">
           <button type="button" class="tab active" data-tab="gallery">Gallery</button>
@@ -53,17 +54,30 @@
         </div>
         <div id="gallery-tab" class="tab-panel active">
           <div id="gallery-pages" class="gallery-pages"></div>
-          <div class="gallery-nav">
+          <div class="bottom-bar">
             <span id="gallery-page-nbr">Page 1 of 1</span>
-            <button type="button" id="gallery-pgup">PgUp</button>
-            <button type="button" id="gallery-pgdn">PgDn</button>
-            <button type="button" id="gallery-home">Home</button>
-            <button type="button" id="gallery-end">End</button>
+            <div class="page-size-selector">
+              <label for="page-size">Images per page:</label>
+              <select id="page-size">
+                <option value="1">1</option>
+                <option value="4">4 (2×2)</option>
+                <option value="9" selected>9 (3×3)</option>
+                <option value="16">16 (4×4)</option>
+                <option value="25">25 (5×5)</option>
+              </select>
+            </div>
+            <div class="pagination-buttons">
+              <button type="button" id="gallery-pgup">PgUp</button>
+              <button type="button" id="gallery-pgdn">PgDn</button>
+              <button type="button" id="gallery-home">Home</button>
+              <button type="button" id="gallery-end">End</button>
+            </div>
           </div>
         </div>
         <div id="image-tab" class="tab-panel">
           <div id="image-container" class="image-container">
             <img id="main-image" alt="Selected image" />
+            <video id="main-video" controls style="display:none"></video>
           </div>
         </div>
       </section>

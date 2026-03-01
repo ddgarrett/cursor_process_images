@@ -19,6 +19,7 @@ const META_ROWS = [
   ['file_location', 'str', 'na', 'get_key', 'sys.subdir', ''],
   ['file_name', 'str', 'na', 'get_key', 'sys.file_name', ''],
   ['file_size', 'int', '0', 'get_key', 'sys.file_size', ''],
+  ['file_media_type', 'str', 'image', 'get_key', '', 'image or video'],
   ['img_lat', 'float', '0', 'get_lat_lon', '["GPS GPSLatitude","GPS GPSLatitudeRef"]', ''],
   ['img_lon', 'float', '0', 'get_lat_lon', '["GPS GPSLongitude","GPS GPSLongitudeRef"]', ''],
   ['img_width', 'int', '0', 'get_key', '["Image ImageWidth","EXIF ExifImageWidth"]', ''],

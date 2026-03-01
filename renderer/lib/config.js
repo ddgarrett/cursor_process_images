@@ -5,6 +5,8 @@ export const VERSION = '0.2.0';
 export const WINDOW_CONFIG = '__WINDOW CONFIG__';
 export const BLOG_URI = 'https://www.garrettblog.com';
 export const IMG_FILE_TYPES = ['.jpg', '.jpeg', '.png', '.gif', '.tiff', '.tif'];
+export const VIDEO_FILE_TYPES = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv'];
+export const MEDIA_FILE_TYPES = [...IMG_FILE_TYPES, ...VIDEO_FILE_TYPES];
 
 export const EVT_FILE_OPEN = '-FILE_OPEN-';
 export const EVT_FILE_NEW = '-FILE_NEW-';

@@ -10,6 +10,31 @@ const { loadDirectory } = require('./exifLoader.js');
 let mainWindow = null;
 let collectionRoot = null; // base path for image collection (for protocol)
 
+/** Stored args per media viewer window (keyed by webContents.id) for get-media-viewer-args. */
+const mediaViewerArgs = new Map();
+
+function createViewerWindow(filePath, type) {
+  const win = new BrowserWindow({
+    width: 800,
+    height: 600,
+    title: path.basename(filePath),
+    webPreferences: {
+      preload: path.join(__dirname, 'media-viewer-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  const id = win.webContents.id;
+  mediaViewerArgs.set(id, { filePath, type });
+
+  win.webContents.on('destroyed', () => {
+    mediaViewerArgs.delete(id);
+  });
+
+  win.loadFile(path.join(__dirname, 'renderer', 'viewer.html'));
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1000,
@@ -128,4 +153,24 @@ ipcMain.handle('collection:setRoot', (_, root) => {
 // EXIF: load directory and return array of row objects
 ipcMain.handle('exif:loadDirectory', async (_, dirPath) => {
   return loadDirectory(dirPath);
+});
+
+// Open viewer window: resolve collection:// URL to file path, then create viewer
+ipcMain.handle('viewer:open', (_, mediaUrl, isVideo) => {
+  let filePath;
+  if (mediaUrl && mediaUrl.startsWith('collection://')) {
+    const pathname = new URL(mediaUrl).pathname || '';
+    const subpath = pathname.replace(/^\/+/, '').split('/').map(s => decodeURIComponent(s)).filter(s => s && s !== '..').join(path.sep);
+    filePath = collectionRoot ? path.normalize(path.join(collectionRoot, subpath)) : null;
+  } else {
+    filePath = mediaUrl;
+  }
+  if (filePath) {
+    createViewerWindow(filePath, isVideo ? 'video' : 'image');
+  }
+});
+
+// Viewer window requests its args (file path + type) so it can display via file://
+ipcMain.handle('get-media-viewer-args', (event) => {
+  return mediaViewerArgs.get(event.sender.id) ?? null;
 });
