@@ -10,7 +10,7 @@ Electron port of the Process Images app. Review and organize image collections w
 ## Run
 
 ```bash
-cd electron
+cd cursor_process_images
 npm install
 npm start
 ```
