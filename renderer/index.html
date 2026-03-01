@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Review Images</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <header class="menu-bar">
+      <nav>
+        <ul class="menu">
+          <li class="menu-item">
+            <span>File</span>
+            <ul class="submenu">
+              <li data-action="-FILE_NEW-">New</li>
+              <li data-action="-FILE_OPEN-">Open</li>
+              <li data-action="-FILE_SAVE-">Save</li>
+              <li data-action="-ADD_FOLDERS-">Add Folders</li>
+              <li data-action="-REORG_IMG-">Reorg Images</li>
+              <li data-action="-FILE_PROPS-">Properties</li>
+              <li data-action="-EXIT-">Exit</li>
+            </ul>
+          </li>
+          <li class="menu-item">
+            <span>Show</span>
+            <ul class="submenu">
+              <li data-action="-SHOW_ALL-">All</li>
+              <li data-action="-SHOW_TBD-">To Be Determined (TBD)</li>
+              <li data-action="-SHOW_POSSIBLE_DUP-">Possible Duplicate</li>
+              <li data-action="-SHOW_POSSIBLE_GOOD_PLUS-">Possible Good or Best</li>
+              <li data-action="-SHOW_POSSIBLE_BEST-">Possible Best</li>
+            </ul>
+          </li>
+          <li class="menu-item">
+            <span>Help</span>
+            <ul class="submenu">
+              <li data-action="-ABOUT-">About</li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+    </header>
+    <main class="main-content">
+      <aside class="tree-pane">
+        <div id="tree-container" class="tree-container"></div>
+      </aside>
+      <section class="content-pane">
+        <div class="tabs">
+          <button type="button" class="tab active" data-tab="gallery">Gallery</button>
+          <button type="button" class="tab" data-tab="image">Image</button>
+        </div>
+        <div id="gallery-tab" class="tab-panel active">
+          <div id="gallery-pages" class="gallery-pages"></div>
+          <div class="gallery-nav">
+            <span id="gallery-page-nbr">Page 1 of 1</span>
+            <button type="button" id="gallery-pgup">PgUp</button>
+            <button type="button" id="gallery-pgdn">PgDn</button>
+            <button type="button" id="gallery-home">Home</button>
+            <button type="button" id="gallery-end">End</button>
+          </div>
+        </div>
+        <div id="image-tab" class="tab-panel">
+          <div id="image-container" class="image-container">
+            <img id="main-image" alt="Selected image" />
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="status-bar">
+      <span id="status-text"></span>
+    </footer>
+  </div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
