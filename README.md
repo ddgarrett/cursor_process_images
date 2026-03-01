@@ -1,3 +1,8 @@
+# NOTE: 
+
+Initially this was run from within the process_images repo and saved in the **electron** subfolder. 
+The results were then moved to a new folder and that was used to create this repo.
+
 # Process Images (Electron)
 
 Electron port of the Process Images app. Review and organize image collections with a folder tree, gallery grid, and single-image view.
